@@ -2,6 +2,7 @@ from model import *
 from clean import *
 from file import *
 import random
+import time
 
 import tensorflow as tf
 import numpy as np
@@ -12,11 +13,14 @@ num_epochs = 40
 
 def buildModel(words, dropout=0.3):
     model = tf.keras.Sequential()
-    model.add(tf.keras.layers.Bidirectional(tf.keras.layers.LSTM(128), input_shape=(maxlen, len(words))))
-    #model.add(tf.keras.layers.LSTM(1, input_shape=(maxlen, len(words))))
+    #model.add(tf.keras.layers.Embedding(len(words), maxlen, input_length=maxlen))
+    #model.add(tf.keras.layers.Bidirectional(tf.keras.layers.LSTM(32), input_shape=(maxlen, len(words))))
+    model.add(tf.keras.layers.LSTM(100, input_shape=(maxlen, len(words))))
+    #model.add(tf.keras.layers.LSTM(100))
+    #model.add(tf.keras.layers.LSTM(100))
     if dropout > 0:
         model.add(tf.layers.Dropout(dropout))
-    model.add(tf.layers.Dense(len(words)))
+    model.add(tf.layers.Dense(len(words), activation='relu'))
     model.add(tf.keras.layers.Activation('softmax'))
     return model
 
@@ -50,8 +54,8 @@ def sample(preds, temperature=1.0):
 
 def train_model():
     test = FileWork()
-    #storyArray = test.readByAuthor("Edgar Allan Poe")
-    storyArray = test.readAll()
+    storyArray = test.readByAuthor("Charles Dickens")
+    #storyArray = test.readAll()
     print('done reading')
     wordArray = storiesToWordArray(storyArray)
     print('done with word array')
@@ -65,7 +69,7 @@ def train_model():
     model = buildModel(words)
     model.compile(loss='binary_crossentropy', optimizer="adam", metrics=['accuracy'])
     print(model.summary())
-    file_path = "./checkpoints/checkpoint-{epoch:03d}.bin"
+    file_path = "./checkpoints/checkpoint-{epoch:03d}-CharlesDickens.bin"
 
     checkpoint = tf.keras.callbacks.ModelCheckpoint(file_path, monitor='val_acc', save_best_only=True)
     early_stopping = tf.keras.callbacks.EarlyStopping(monitor='val_acc', patience=5)
@@ -77,9 +81,10 @@ def train_model():
                         callbacks=callbacks_list,
                         validation_data=generator(sentences_test, next_words_test, maxlen, words, word_indices),
                         validation_steps=int(len(sentences_test) / num_epochs) + 1)
+    model.save('./models/model-' + time.strftime("%Y%m%d-%H%M%S") + ".h5")
 
-def load_model():
-    model = tf.keras.models.load_model('./checkpoints/checkpoint-001-EdgarAllenPoe.bin')
+def load_model(checkpoint_location):
+    model = tf.keras.models.load_model(checkpoint_location)
     print(model.summary())
     return model
 
@@ -137,11 +142,11 @@ def validate_seed(vocabulary, seed):
     return return_valid_words
 
 if __name__ == "__main__":
-    #train_model()
-    model = load_model()
+    train_model()
+    '''model = load_model('./checkpoints/checkpoint-004.bin')
     test = FileWork()
-    #storyArray = test.readByAuthor("Edgar Allan Poe")
-    storyArray = test.readAll()
+    storyArray = test.readByAuthor("Charles Dickens")
+    #storyArray = test.readAll()
     wordArray = storiesToWordArray(storyArray)
     word_indices, indices_word, ignored_words, vocabulary = vectorization(wordArray)
 
@@ -169,11 +174,13 @@ if __name__ == "__main__":
     "Pope not admiration only, but some active endeavour to be useful to its"
     "author."
 
-    '''for i in range((len(vocabulary) - 50)):
-        pos = random.randint(0,len(vocabulary) - 1)
-        seed = seed + vocabulary[pos] + " "
+   #seed = ""
+    #for i in range((len(vocabulary) - 50)):
+    #    pos = random.randint(0,len(vocabulary) - 1)
+    #    seed = seed + vocabulary[pos] + " "
 
-    seed = seed[-200:]
-'''
+    print(seed)
+    #seed = seed[-200:]
+
     seed = validate_seed(vocabulary, seed)
-    generate_text(model, indices_word, word_indices, seed, maxlen, 1.0, 250, vocabulary)
+    generate_text(model, indices_word, word_indices, seed, maxlen, 1.0, 250, vocabulary)'''
