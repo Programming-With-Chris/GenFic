@@ -9,9 +9,10 @@ class FileWork:
 
     def readByAuthor(self, authorName):
         textArray = []
-        for filename in os.listdir("../res/Gutenberg/txt/"):
+        #for filename in os.listdir("../res/Gutenberg/txt/"):
+        for filename in os.listdir("C:\\Users\\Chris\\Dropbox\\Python Stuff\\GenFic\\res\\Gutenberg\\txt\\"):
             if filename.find(authorName) >= 0:
-                text = (open(os.path.join("../res/Gutenberg/txt/", filename),  encoding="utf8").read())
+                text = (open(os.path.join("C:\\Users\\Chris\\Dropbox\\Python Stuff\\GenFic\\res\\Gutenberg\\txt\\", filename),  encoding="utf8").read())
                 textArray.append(text)
                 continue
             else:

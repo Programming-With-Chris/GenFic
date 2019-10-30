@@ -1,14 +1,18 @@
 import numpy as np
 
 
-MIN_WORD_FREQUENCY = 20
-maxlen = 30
+MIN_WORD_FREQUENCY = 25
+maxlen = 50
 
 def storiesToWordArray(storyArray):
     wordArray = []
     for story in storyArray:
-        story = story.replace('\n' ,'')
-        splitStory = story.split(" ")
+        story = story.replace('.', ' . ')
+        story = story.replace(',', ' , ')
+        story = story.replace('!', ' ! ')
+        story = story.replace('"', ' " ')
+        story = story.replace('\'', ' \' ')
+        splitStory = story.split()
         for word in splitStory:
             wordArray.append(word)
     return wordArray
@@ -21,8 +25,6 @@ def combineStories(storyArray):
     return outString
 
 def vectorization(wordArray):
-    #MIN_WORD_FREQUENCY = 30
-    # Calculate word frequency
     word_freq = {}
     for word in wordArray:
         word_freq[word] = word_freq.get(word, 0) + 1
@@ -57,8 +59,7 @@ def shuffle_and_split_training_set(sentences_original, labels_original, percenta
     return x_train, y_train, x_test, y_test
 
 def createSequences(wordArray, ignored_words):
-    #maxlen = 10
-    step = 5
+    step = 1
     sentences = []
     next_words = []
     ignored = 0
