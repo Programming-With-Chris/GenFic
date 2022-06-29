@@ -60,6 +60,6 @@ class Word2VecWorker:
 
 if __name__ == "__main__":
     test = FileWork()
-    returnArray = test.readByAuthor("Edgar Allan Poe")
+    returnArray = test.read_by_author("Edgar Allan Poe")
     w2vTest = Word2VecWorker()
     w2vTest.vectorize(returnArray)

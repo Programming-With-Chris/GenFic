@@ -7,20 +7,19 @@ class FileWork:
     STORY_LIMIT = 50
     START_POINT = 50
 
-    def readByAuthor(self, authorName):
-        textArray = []
-        #for filename in os.listdir("../res/Gutenberg/txt/"):
-        for filename in os.listdir("C:\\Users\\CC163\\PycharmProjects\\GenFic\\fiction"):
-            if filename.find(authorName) >= 0:
-                text = (open(os.path.join("C:\\Users\\CC163\\PycharmProjects\\GenFic\\fiction", filename),  encoding="utf8").read())
-                textArray.append(text)
+    def read_by_author(self, author_name):
+        text_array = []
+        for filename in os.listdir("../fiction"):
+            if filename.find(author_name) >= 0:
+                text = (open(os.path.join("../fiction", filename),  encoding="utf8").read())
+                text_array.append(text)
                 continue
             else:
                 continue
-        return textArray
+        return text_array
 
-    def readAll(self):
-        textArray = []
+    def read_all(self):
+        text_array = []
         print('reading files')
         i = 0
         for filename in os.listdir("../fiction/"):
@@ -28,13 +27,14 @@ class FileWork:
                 if i < self.STORY_LIMIT:
                     text = (open(os.path.join("../fiction/", filename),  encoding="utf8").read())
                     i = i + 1
-                    textArray.append(text)
+                    text_array.append(text)
             except:
                 continue
-        return textArray
+        return text_array
 
 
 if __name__ == "__main__":
+    #For testing filework()
     test = FileWork()
-    returnArray = test.readByAuthor("Abraham Lincoln")
-    print(returnArray)
+    return_array = test.read_by_author("Edgar Allan Poe")
+    print(return_array)
