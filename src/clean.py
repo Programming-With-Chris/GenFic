@@ -1,13 +1,15 @@
 import numpy as np
+from config import *
 
 
-MIN_WORD_FREQUENCY = 25
-maxlen = 50
+maxlen, BATCH_SIZE, num_epochs, MIN_WORD_FREQUENCY = get_configs()
 
 def storiesToWordArray(storyArray):
     wordArray = []
     for story in storyArray:
         story = story.replace('.', ' . ')
+        #story = story.replace('(', ' ( ')
+        #story = story.replace(')', ' ) ')
         story = story.replace(',', ' , ')
         story = story.replace('!', ' ! ')
         story = story.replace('"', ' " ')
@@ -43,7 +45,7 @@ def vectorization(wordArray):
     return word_indices, indices_word, ignored_words, words
 
 
-def shuffle_and_split_training_set(sentences_original, labels_original, percentage_test=20):
+def shuffle_and_split_training_set(sentences_original, labels_original, percentage_test=3):
     # shuffle at unison
     print('Shuffling sentences')
     tmp_sentences = []

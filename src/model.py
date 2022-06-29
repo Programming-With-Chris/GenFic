@@ -1,27 +1,27 @@
 from model import *
 from clean import *
 from file import *
-import time
+from config import *
 
 import tensorflow as tf
 import numpy as np
 
-maxlen = 50
-BATCH_SIZE = 20
-num_epochs = 10
+maxlen, BATCH_SIZE, num_epochs, MIN_WORD_FREQUENCY = get_configs()
 
 def buildModel(words, dropout=0.3):
     model = tf.keras.Sequential()
-    #model.add(tf.keras.layers.Embedding(batch_input_shape=(len(words), maxlen), input_dim=len(words), output_dim=len(words), input_length=maxlen))
+    #model.add(
+    #    tf.keras.layers.Embedding(batch_input_shape=(len(words), maxlen), input_dim=len(words), output_dim=len(words),
+    #                             input_length=maxlen))
     #model.add(tf.keras.layers.Bidirectional(tf.keras.layers.LSTM(32), input_shape=(maxlen, len(words))))
-    model.add(tf.keras.layers.LSTM(100, input_shape=(maxlen, len(words)), activation='relu', return_sequences=True))
-    model.add(tf.keras.layers.LSTM(100, input_shape=(maxlen, len(words)), activation='relu'))
-    if dropout > 0:
-        model.add(tf.layers.Dropout(dropout))
-    model.add(tf.layers.Dense(len(words), activation='relu'))
-    model.add(tf.keras.layers.Activation('softmax'))
-    return model
+    model.add(tf.keras.layers.LSTM(128, input_shape=(maxlen, len(words)), activation='relu', return_sequences=True))
+    model.add(tf.keras.layers.LSTM(128, input_shape=(maxlen, len(words)), activation='relu'))
+    #if dropout > 0:
+    #    model.add(tf.keras.layers.Dropout(dropout))
 
+    model.add(tf.keras.layers.Dense(len(words), activation='softmax'))
+    #model.add(tf.keras.layers.Activation('softmax'))
+    return model
 
 
 def generator(sentence_list, next_word_list, batch_size, wordArray, word_indices):
@@ -39,6 +39,7 @@ def generator(sentence_list, next_word_list, batch_size, wordArray, word_indices
                 index = 0
         yield x, y
 
+
 def sample(preds, temperature=1.0):
     # helper function to sample an index from a probability array
     preds = np.asarray(preds).astype('float64')
@@ -49,11 +50,10 @@ def sample(preds, temperature=1.0):
     return np.argmax(probas)
 
 
-
 def train_model(model_save_location):
-    test = FileWork()
-    storyArray = test.readByAuthor("Edgar Allan Poe")
-    #storyArray = test.readAll()
+    text_files = FileWork()
+    storyArray = text_files.readByAuthor("Edgar Allan Poe")
+    # storyArray = test.readAll()
     print('done reading')
     wordArray = storiesToWordArray(storyArray)
     print('done with word array')
@@ -62,24 +62,24 @@ def train_model(model_save_location):
     sentences, next_words = createSequences(wordArray, ignored_words)
     print('done with sequences')
     sentences_train, next_words_train, sentences_test, next_words_test = shuffle_and_split_training_set(sentences,
-                                                                                                       next_words)
+                                                                                                        next_words)
     print('building model')
     model = buildModel(words)
     model.compile(loss='binary_crossentropy', optimizer="adam", metrics=['accuracy'])
     print(model.summary())
-    #file_path = "./checkpoints/checkpoint-{epoch:03d}-EdgarAllanPoe.bin"
-
-    #checkpoint = tf.keras.callbacks.ModelCheckpoint(file_path, monitor='val_acc', save_best_only=True)
-    early_stopping = tf.keras.callbacks.EarlyStopping(monitor='val_acc', patience=5)
+    # file_path = "./checkpoints/checkpoint-{epoch:03d}-EdgarAllanPoe.bin"
+    # checkpoint = tf.keras.callbacks.ModelCheckpoint(file_path, monitor='val_acc', save_best_only=True)
+    early_stopping = tf.keras.callbacks.EarlyStopping(monitor='val_accuracy', patience=25)
     callbacks_list = [early_stopping]
 
-    model.fit_generator(generator(sentences, next_words, BATCH_SIZE, words, word_indices),
+    model.fit(generator(sentences, next_words, BATCH_SIZE, words, word_indices),
                         steps_per_epoch=int(len(sentences) / num_epochs) + 1,
                         epochs=num_epochs,
                         callbacks=callbacks_list,
                         validation_data=generator(sentences_test, next_words_test, maxlen, words, word_indices),
                         validation_steps=int(len(sentences_test) / num_epochs) + 1)
     model.save(model_save_location)
+
 
 def load_model(checkpoint_location):
     model = tf.keras.models.load_model(checkpoint_location)
@@ -103,14 +103,14 @@ def load_model_and_continue(checkpoint_location):
     sentences_train, next_words_train, sentences_test, next_words_test = shuffle_and_split_training_set(sentences,
                                                                                                         next_words)
     print('building model')
-    #model.compile(loss='binary_crossentropy', optimizer="adam", metrics=['accuracy'])
-    #print(model.summary())
+    # model.compile(loss='binary_crossentropy', optimizer="adam", metrics=['accuracy'])
+    # print(model.summary())
     file_path = "./checkpoints/checkpoint-{epoch:03d}-EdgarAllanPoe.bin"
 
-    #checkpoint = tf.keras.callbacks.ModelCheckpoint(file_path, monitor='val_acc', save_best_only=True)
-    #early_stopping = tf.keras.callbacks.EarlyStopping(monitor='val_acc', patience=5)
-    #callbacks_list = [checkpoint, early_stopping]
-    early_stopping = tf.keras.callbacks.EarlyStopping(monitor='val_acc', patience=5)
+    # checkpoint = tf.keras.callbacks.ModelCheckpoint(file_path, monitor='val_acc', save_best_only=True)
+    # early_stopping = tf.keras.callbacks.EarlyStopping(monitor='val_acc', patience=5)
+    # callbacks_list = [checkpoint, early_stopping]
+    early_stopping = tf.keras.callbacks.EarlyStopping(monitor='val_acc', patience=50)
     callbacks_list = [early_stopping]
 
     model.fit_generator(generator(sentences, next_words, BATCH_SIZE, words, word_indices),
@@ -121,6 +121,7 @@ def load_model_and_continue(checkpoint_location):
                         validation_steps=int(len(sentences_test) / num_epochs) + 1)
     model.save(checkpoint_location)
     return model
+
 
 def generate_text(model, indices_word, word_indices, seed,
                   sequence_length, diversity, quantity, vocabulary):
@@ -140,87 +141,48 @@ def generate_text(model, indices_word, word_indices, seed,
     print('----- Diversity:' + str(diversity))
     print('----- Generating with seed:\n"' + seed)
 
-    print(seed)
+
     for i in range(quantity):
         x_pred = np.zeros((1, sequence_length, len(vocabulary)))
         for t, word in enumerate(sentence):
-            x_pred[0, t, word_indices[word]] = 1.
+            if t < sequence_length:
+                x_pred[0, t, word_indices[word]] = 1
 
+        #TODO Probably the place to change
         preds = model.predict(x_pred, verbose=0)[0]
         next_index = sample(preds, diversity)
         next_word = indices_word[next_index]
 
-        #if next_word is ' , ' or ' . ':
-         #   next_word = next_word[-1:]
+        # if next_word is ' , ' or ' . ':
+        #   next_word = next_word[-1:]
 
         sentence = sentence[1:]
         sentence.append(next_word)
 
-        print(" " + next_word, end="")
+        punctuation_array = [".", ",", "!", "?"]
+
+        if next_word in punctuation_array:
+            print(next_word, end="")
+        else:
+            print(" " + next_word, end="")
+
         if i % 15 == 0:
             print("\n")
     print("\n")
 
 
-
 def validate_seed(vocabulary, seed):
-    """Validate that all the words in the seed are part of the vocabulary"""
-    print("\nValidating that all the words in the seed are part of the vocabulary: ")
-    seed_words = seed.split(" ")
+    #print("\nValidating that all the words in the seed are part of the vocabulary: ")
     return_valid_words = ""
-    for w in seed_words:
-        print(w, end="")
+    for w in seed:
+        #print(w, end="")
         if w in vocabulary:
-            print(" ✓ in vocabulary")
+            #print(" ✓ in vocabulary")
             return_valid_words = return_valid_words + w + " "
         else:
-            print(" ✗ NOT in vocabulary")
+            #print(" ✗ NOT in vocabulary")
             valid = False
     return return_valid_words
 
-if __name__ == "__main__":
 
-    train_model('C:\\Users\\Chris\\Dropbox\\Python Stuff\\GenFic\\src\\models\\model-EAP-test.h5')
-    load_model_and_continue('C:\\Users\\Chris\\Dropbox\\Python Stuff\\GenFic\\src\\models\\model-20190416-194355.h5')
-    #model = load_model('./models/model-20190416-194355.h5')
-    model = load_model('C:\\Users\\Chris\\Dropbox\\Python Stuff\\GenFic\\src\\models\\model-EAP-04-20-19-maxlen50.h5')
-    test = FileWork()
-    storyArray = test.readByAuthor("Edgar Allan Poe")
-    #storyArray = test.readAll()
-    wordArray = storiesToWordArray(storyArray)
-    word_indices, indices_word, ignored_words, vocabulary = vectorization(wordArray)
 
-    seed = ("Pope's Satires, which still deal with characters of men, followed" +
-    "immediately, some appearing in a folio in January, 1735.  That part of" +
-    "the epistle to Arbuthnot forming the Prologue, which gives a character of" +
-    "Addison, as Atticus, had been sketched more than twelve years before, and" +
-    "earlier sketches of some smaller critics were introduced; but the" +
-    "beginning and the end, the parts in which Pope spoke of himself and of" +
-    "his father and mother, and his friend Dr. Arbuthnot, were written in 1733" +
-    "and 1734.  Then follows an imitation of the first Epistle of the Second" +
-    "Book of the Satires of Horace, concerning which Pope told a friend, When" +
-    "I had a fever one winter in town that confined me to my room for five or" +
-    "six days, Lord Bolingbroke, who came to see me, happened to take up a" +
-    "Horace that lay on the table, and, turning it over, dropped on the first" +
-    "satire in the Second Book, which begins, 'Sunt, quibus in satira.'  He" +
-    "observed how well that would suit my case if I were to imitate it in" +
-    "English.  After he was gone, I read it over, translated it in a morning" +
-    "or two, and sent it to press in a week or a fortnight after (February," +
-    "1733).  And this was the occasion of my imitating some others of the" +
-    "Satires and Epistles.  The two dialogues finally used as the Epilogue to" +
-    "the Satires were first published in the year 1738, with the name of the" +
-    "year, Seventeen Hundred and Thirty-eight.  Samuel Johnson's London," +
-    "his first bid for recognition, appeared in the same week, and excited in" +
-    "Pope not admiration only, but some active endeavour to be useful to its" +
-    "author.")
-
-    #seed = seed[:150]
-   #seed = ""
-    #for i in range((len(vocabulary) - 50)):
-    #    pos = random.randint(0,len(vocabulary) - 1)
-    #    seed = seed + vocabulary[pos] + " "
-
-    seed = seed[:200]
-
-    seed = validate_seed(vocabulary, seed)
-    generate_text(model, indices_word, word_indices, seed, maxlen, 1.0, 250, vocabulary)
